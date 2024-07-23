@@ -1,7 +1,7 @@
 import { formatDate } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { MessageSeenSvg } from "@/lib/svgs";
-import { ImageIcon, Users, VideoIcon } from "lucide-react";
+import { ImageIcon, Users, VideoIcon, AudioWaveform } from "lucide-react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useConversationStore } from "@/store/chat-store";
@@ -50,6 +50,7 @@ const Conversation = ({ conversation }: { conversation: any }) => {
 						) : null}
 						{lastMessageType === "image" && <ImageIcon size={16} />}
 						{lastMessageType === "video" && <VideoIcon size={16} />}
+						{lastMessageType === "audio" && <AudioWaveform size={16} />}
 					</p>
 				</div>
 			</div>

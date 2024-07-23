@@ -37,6 +37,8 @@ const ChatBubble = ({me, message, previousMessage}: ChatBubbleProps) => {
 				return <ImageMessage message={message} handleClick={() => setOpen(true)} />;
 			case "video":
 				return <VideoMessage message={message} />;
+			case "audio":
+				return <AudioMessage message={message} />
 			default:
 				return null;
 		}
@@ -98,6 +100,10 @@ const ChatBubble = ({me, message, previousMessage}: ChatBubbleProps) => {
 export default ChatBubble;
 
 const VideoMessage = ({ message }: { message: IMessage }) => {
+	return <ReactPlayer url={message.content} width='250px' height='250px' controls={true} light={true} />;
+};
+
+const AudioMessage = ({ message }: { message: IMessage }) => {
 	return <ReactPlayer url={message.content} width='250px' height='250px' controls={true} light={true} />;
 };
 

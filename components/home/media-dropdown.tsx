@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../ui/dropdown-menu";
-import { ImageIcon, Plus, Video } from "lucide-react";
+import { ImageIcon, Plus, Video, Volume  } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription } from "../ui/dialog";
 import { Button } from "../ui/button";
 import Image from "next/image";
@@ -13,14 +13,17 @@ import { useConversationStore } from "@/store/chat-store";
 const MediaDropdown = () => {
     const imageInput = useRef<HTMLInputElement>(null);
 	const videoInput = useRef<HTMLInputElement>(null);
+	const audioInput = useRef<HTMLInputElement>(null);
 	const [selectedImage, setSelectedImage] = useState<File | null>(null);
 	const [selectedVideo, setSelectedVideo] = useState<File | null>(null);
+	const [selectedAudio, setSelectedAudio] = useState<File | null>(null);
 
 	const [isLoading, setIsLoading] = useState(false);
 
     const generateUploadUrl = useMutation(api.conversations.generateUploadUrl)
     const sendImage = useMutation(api.messages.sendImage);
     const sendVideo = useMutation(api.messages.sendVideo);
+	const sendAudio = useMutation(api.messages.sendAudio);
     const me = useQuery(api.users.getMe);
 
     const { selectedConversation } = useConversationStore();
@@ -79,6 +82,31 @@ const MediaDropdown = () => {
         }
     }
 
+	const handleSendAudio = async () => {
+        setIsLoading(true);
+        try {
+            const postUrl = await generateUploadUrl();
+            const result = await fetch(postUrl, {
+                method: "POST",
+                headers: { "Content-Type": selectedAudio!.type },
+                body: selectedAudio,
+            });
+
+            const { storageId } = await result.json();
+            await sendAudio({
+                audioId: storageId,
+                conversation: selectedConversation!._id,
+                sender: me!._id,
+            });
+
+            setSelectedAudio(null);
+        } catch (error) {
+            toast.error("Failed to send audio");
+        } finally {
+            setIsLoading(false);
+        }
+    }
+
   return (
     <>
         <input
@@ -96,6 +124,14 @@ const MediaDropdown = () => {
 			onChange={(e) => setSelectedVideo(e.target?.files![0])}
 			hidden
         />
+
+		<input
+			type="file"
+			ref={audioInput}
+			accept='audio/mpeg'
+			onChange={(e) => setSelectedAudio(e.target?.files![0])}
+			hidden
+		/>
 
         {selectedImage && (
             <MediaImageDialog
@@ -117,6 +153,16 @@ const MediaDropdown = () => {
             />
         )}
 
+		{selectedAudio && (
+			<MediaAudioDialog
+			isOpen={selectedAudio !== null}
+			onClose={() => setSelectedAudio(null)}
+			selectedAudio={selectedAudio}
+			isLoading={isLoading}
+			handleSendAudio={handleSendAudio}
+		/>
+        )}
+
         <DropdownMenu>
 			<DropdownMenuTrigger>
 				<Plus className='text-gray-600 dark:text-gray-400' />
@@ -130,6 +176,10 @@ const MediaDropdown = () => {
 					<Video size={20} className='mr-1' />
 					Video
 				</DropdownMenuItem>
+				<DropdownMenuItem onClick={() => audioInput.current!.click()}>
+                    <Volume size={20} className='mr-1' />
+                    Audio
+                </DropdownMenuItem>
 			</DropdownMenuContent>
 		</DropdownMenu>
     </>
@@ -204,4 +254,35 @@ const MediaVideoDialog = ({ isOpen, onClose, selectedVideo, isLoading, handleSen
 			</DialogContent>
 		</Dialog>
 	);
+};
+
+type MediaAudioDialogProps = {
+    isOpen: boolean;
+    onClose: () => void;
+    selectedAudio: File;
+    isLoading: boolean;
+    handleSendAudio: () => void;
+};
+
+const MediaAudioDialog = ({ isOpen, onClose, selectedAudio, isLoading, handleSendAudio }: MediaAudioDialogProps) => {
+    const renderedAudio = URL.createObjectURL(new Blob([selectedAudio], { type: 'audio/mpeg' }));
+
+    return (
+        <Dialog
+            open={isOpen}
+            onOpenChange={(isOpen) => {
+                if (!isOpen) onClose();
+            }}
+        >
+            <DialogContent>
+                <DialogDescription>Audio</DialogDescription>
+                <div className='w-full'>
+                    {renderedAudio && <ReactPlayer url={renderedAudio} controls width='100%' />}
+                </div>
+                <Button className='w-full' disabled={isLoading} onClick={handleSendAudio}>
+                    {isLoading ? "Sending..." : "Send"}
+                </Button>
+            </DialogContent>
+        </Dialog>
+    );
 };
